@@ -1,4 +1,5 @@
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+# from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_experimental.text_splitter import SemanticChunker
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
@@ -16,16 +17,22 @@ def encode_pdf(path, chunk_size=1000, chunk_overlap=200):
     
     loader = PyPDFLoader(path)
     documents = loader.load()
+    # embeddings = OpenAIEmbeddings()
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size, chunk_overlap=chunk_overlap, length_function=len
-    ) 
-
+    # text_splitter = RecursiveCharacterTextSplitter(
+    #     chunk_size=chunk_size, chunk_overlap=chunk_overlap, length_function=len
+    # )
+    text_splitter = SemanticChunker(
+    embeddings, 
+    breakpoint_threshold_type="percentile", 
+    breakpoint_threshold_amount=95, 
+    number_of_chunks=None ) 
+    
     texts = text_splitter.split_documents(documents)
     cleaned_texts = replace_t_with_space(texts)
 
-    # embeddings = OpenAIEmbeddings()
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    
     vectorstore = FAISS.from_documents(cleaned_texts, embeddings)
 
     return vectorstore
