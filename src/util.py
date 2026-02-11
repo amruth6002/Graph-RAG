@@ -1,5 +1,7 @@
 # from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_experimental.text_splitter import SemanticChunker
+from sentence_transformers import CrossEncoder
+from sentence_transformers import CrossEncoder
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
@@ -37,11 +39,18 @@ def encode_pdf(path, chunk_size=1000, chunk_overlap=200):
 
     return vectorstore
 
-def retrieve_context_per_question(question,chunks_query_retriever):
-    docs=chunks_query_retriever.invoke(question)
-
-    context=[doc.page_content for doc in docs]
-
+def retrieve_context_per_question(question, chunks_query_retriever, n_retrieved=2):
+    docs = chunks_query_retriever.invoke(question)
+    
+    # Rerank using cross-encoder
+    reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+    query_doc_pairs = [(question, doc.page_content) for doc in docs]
+    scores = reranker.predict(query_doc_pairs)
+    
+    # Sort by score (higher is better) and take top n_retrieved
+    ranked_docs = sorted(zip(docs, scores), key=lambda x: x[1], reverse=True)[:n_retrieved]
+    context = [doc.page_content for doc, _ in ranked_docs]
+    
     return context
 
 def show_context(context):

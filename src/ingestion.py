@@ -16,7 +16,7 @@ os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 
 class SimpleRAG:
 
-        def __init__(self,path , chunk_size=1000,chunk_overlap=200 , n_retrieved=2):
+        def __init__(self,path , chunk_size=1000,chunk_overlap=200 , n_retrieved=10):
             print("In simple-RAG class")
 
             start_time = time.time()
