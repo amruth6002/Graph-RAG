@@ -6,7 +6,7 @@ import argparse
 import time
 from dotenv import load_dotenv
 from langchain_core.prompts import PromptTemplate
-from util import ( encode_pdf, retrieve_context_per_question, show_context , 
+from util import ( encode_pdf,  show_context , 
 build_knowledge_graph,rerank_documents, find_node_by_content,
 expand_context_via_graph,visualize_graph)
 
@@ -19,7 +19,7 @@ class GraphRAG:
             print("INGESTION PHASE")
             
             self.llm = ChatGroq(
-                model="llama-3.1-8b-instant",
+                model="llama-3.3-70b-versatile",
                 temperature=0
             )
 
@@ -54,15 +54,15 @@ class GraphRAG:
               template=query_rewrite_template
                )
             query_rewriter = query_rewrite_prompt | self.llm
-            response=query_rewriter.invoke(query).content
-            print(f"changed query :{response.content}")
+            changed_query=query_rewriter.invoke(query).content
+            print(f"changed query :{changed_query}")
             self.time_records['query rewrite'] = time.time()-start_time
             print(f"query rewriting time:{self.time_records['query rewrite']:.2f}s")
             
 
             print("\n[2] vector retrieval (top {n_retrieved} from FAISS)")
             start_time= time.time()
-            retrieved_docs = self.chunks_query_retriever.invoke(response)
+            retrieved_docs = self.chunks_query_retriever.invoke(changed_query)
             print(f"Retrieved {len(retrieved_docs)} chunks")
             self.time_records['vector retrieval']=time.time()-start_time
             print(f"vector retrieval  time:{self.time_records['vector retrieval']:.2f}s")
@@ -71,7 +71,7 @@ class GraphRAG:
             n_rerank=min(5,len(retrieved_docs))
             print(f"\n[3] cross-encoder reranking (top {n_rerank})")
             start_time=time.time()
-            ranked_results=rerank_documents(response,retrieved_docs,n_retrieved=n_rerank)
+            ranked_results=rerank_documents(changed_query,retrieved_docs,n_retrieved=n_rerank)
             self.time_records['reranking']=time.time()-start_time
             print(f"reranking time:{self.time_records['reranking']:.2f}s")
 
@@ -106,7 +106,7 @@ class GraphRAG:
 
             context_text="\n\n".join(context_texts)
 
-            prompt = f"Based on the following context, answer the question.\n\nContext:\n{context_text}\n\nQuestion: {response}\n\nAnswer:"
+            prompt = f"Based on the following context, answer the question.\n\nContext:\n{context_text}\n\nQuestion: {changed_query}\n\nAnswer:"
             response = self.llm.invoke(prompt).content
             self.time_records['answer generation']=time.time()-start_time
             print(f"answer generation time:{self.time_records['answer generation']:.2f}s")

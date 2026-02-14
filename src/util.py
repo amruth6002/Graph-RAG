@@ -71,13 +71,13 @@ def encode_pdf(path, chunk_size=1000, chunk_overlap=200,persist_dir="indexes/fai
 
     os.makedirs(persist_dir,exist_ok=True)
     vectorstore.save_local(persist_dir)
-    with open(ps.path.join(persist_dir,"splits.pkl"),"wb") as f:
+    with open(os.path.join(persist_dir,"splits.pkl"),"wb") as f:
         pickle.dump(cleaned_splits,f)
     print(f"FAISS index persisted")
 
     return vectorstore,cleaned_splits,embeddings
 
-class knowledgeGraph:
+class KnowledgeGraph:
 
     def __init__(self):
       self.graph=nx.Graph()
