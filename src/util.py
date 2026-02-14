@@ -84,7 +84,7 @@ class KnowledgeGraph:
       self.lemmatizer=WordNetLemmatizer()
       self.concept_cache={}
       self.nlp=self._load_spacy_model()
-      self.edges_threshold=0.8
+      self.edges_threshold=0.5
     
     def _load_spacy_model(self):
         return spacy.load("en_core_web_sm")
@@ -261,33 +261,20 @@ def visualize_graph(knowledge_graph, traversal_path, save_path="graph_traversal.
         return
 
     fig, ax = plt.subplots(figsize=(16, 12))
-    pos = nx.spring_layout(graph, k=2, iterations=50, seed=42)
+    pos = nx.spring_layout(graph, k=1, iterations=50, seed=42)  # k=1 like notebook (tighter layout)
 
-    # Draw edges
+    # Draw edges with color mapped to weight
     edges = list(graph.edges())
     if edges:
         edge_weights = [graph[u][v].get('weight', 0.5) for u, v in edges]
         nx.draw_networkx_edges(graph, pos, edgelist=edges, edge_color=edge_weights,
-                               edge_cmap=plt.cm.Blues, width=1.5, ax=ax, alpha=0.6)
+                               edge_cmap=plt.cm.Blues, width=2, ax=ax)
 
-    # Draw all nodes
-    non_traversal = [n for n in graph.nodes() if n not in traversal_path]
-    nx.draw_networkx_nodes(graph, pos, nodelist=non_traversal, node_color='lightblue',
-                           node_size=800, ax=ax, alpha=0.5)
+    # Draw ALL nodes as lightblue (like notebook)
+    nx.draw_networkx_nodes(graph, pos, node_color='lightblue',
+                           node_size=3000, ax=ax)
 
-    # Draw traversal nodes (larger)
-    traversal_middle = traversal_path[1:-1] if len(traversal_path) > 2 else []
-    nx.draw_networkx_nodes(graph, pos, nodelist=traversal_middle, node_color='lightyellow',
-                           node_size=2000, ax=ax)
-
-    # Start and end nodes
-    nx.draw_networkx_nodes(graph, pos, nodelist=[traversal_path[0]],
-                           node_color='lightgreen', node_size=2500, ax=ax)
-    if len(traversal_path) > 1:
-        nx.draw_networkx_nodes(graph, pos, nodelist=[traversal_path[-1]],
-                               node_color='lightcoral', node_size=2500, ax=ax)
-
-    # Draw traversal arrows
+    # Draw traversal path with curved arrows
     for i in range(len(traversal_path) - 1):
         arrow = patches.FancyArrowPatch(
             pos[traversal_path[i]], pos[traversal_path[i + 1]],
@@ -296,28 +283,44 @@ def visualize_graph(knowledge_graph, traversal_path, save_path="graph_traversal.
         )
         ax.add_patch(arrow)
 
-    # Labels
+    # Labels — full concept name (no truncation)
     labels = {}
     for i, node in enumerate(traversal_path):
         concepts = graph.nodes[node].get('concepts', [])
-        labels[node] = f"{i+1}. {concepts[0][:18] if concepts else ''}"
+        labels[node] = f"{i+1}. {concepts[0] if concepts else ''}"
     for node in graph.nodes():
         if node not in labels:
             concepts = graph.nodes[node].get('concepts', [])
-            labels[node] = concepts[0][:15] if concepts else str(node)
-    nx.draw_networkx_labels(graph, pos, labels, font_size=6, ax=ax)
+            labels[node] = concepts[0] if concepts else ''
+    nx.draw_networkx_labels(graph, pos, labels, font_size=8, font_weight="bold", ax=ax)
 
-    ax.set_title("Knowledge Graph — Traversal Path", fontsize=14)
+    # Highlight start and end nodes (drawn AFTER regular nodes to overlay)
+    nx.draw_networkx_nodes(graph, pos, nodelist=[traversal_path[0]],
+                           node_color='lightgreen', node_size=3000, ax=ax)
+    if len(traversal_path) > 1:
+        nx.draw_networkx_nodes(graph, pos, nodelist=[traversal_path[-1]],
+                               node_color='lightcoral', node_size=3000, ax=ax)
+
+    ax.set_title("Graph Traversal Flow", fontsize=14)
     ax.axis('off')
+
+    # Colorbar for edge weights
+    if edges:
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues,
+                                    norm=plt.Normalize(vmin=min(edge_weights), vmax=max(edge_weights)))
+        sm.set_array([])
+        cbar = fig.colorbar(sm, ax=ax, orientation='vertical', fraction=0.046, pad=0.04)
+        cbar.set_label('Edge Weight', rotation=270, labelpad=15)
 
     # Legend
     lines = [
-        plt.Line2D([0], [0], color='blue', linewidth=2, alpha=0.6, label='Similarity edge'),
-        plt.Line2D([0], [0], color='red', linewidth=2, linestyle='--', label='Traversal path'),
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='lightgreen', markersize=12, label='Start node'),
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='lightcoral', markersize=12, label='End node'),
+        plt.Line2D([0], [0], color='blue', linewidth=2, label='Regular Edge'),
+        plt.Line2D([0], [0], color='red', linewidth=2, linestyle='--', label='Traversal Path'),
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='lightgreen', markersize=15, label='Start Node'),
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='lightcoral', markersize=15, label='End Node'),
     ]
-    plt.legend(handles=lines, loc='upper left', fontsize=9)
+    plt.legend(handles=lines, loc='upper left', bbox_to_anchor=(0, 1), ncol=2, fontsize=9)
+
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches='tight')
     print(f"Graph visualization saved to {save_path}")
