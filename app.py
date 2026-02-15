@@ -16,7 +16,7 @@ from util import (
 # Page config
 st.set_page_config(
     page_title="GraphRAG - Graph-Enhanced RAG",
-    page_icon="🧠",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -167,26 +167,26 @@ class GraphRAG:
         return results
 
 # Header
-st.markdown('<h1 class="main-header">🧠 GraphRAG</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">GraphRAG</h1>', unsafe_allow_html=True)
 st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666;">Graph-Enhanced Retrieval-Augmented Generation</p>', unsafe_allow_html=True)
 
 # Sidebar
 with st.sidebar:
-    st.header("⚙️ Configuration")
+    st.header("Configuration")
     
     # API Key Check
     if not api_key:
-        st.error("⚠️ GROQ_API_KEY not found!")
+        st.error("GROQ_API_KEY not found! Please add it to Streamlit secrets.")
         api_key = st.text_input("Enter your Groq API Key:", type="password")
         if api_key:
             os.environ["GROQ_API_KEY"] = api_key
     else:
-        st.success("✅ API Key loaded")
+        st.success("API Key loaded successfully")
 
     st.divider()
     
     # File Upload
-    st.subheader("📄 Upload PDF")
+    st.subheader("Upload PDF")
     uploaded_file = st.file_uploader("Choose a PDF file", type=['pdf'])
     
     # Advanced Settings
@@ -206,7 +206,7 @@ with st.sidebar:
     
     # System Info
     if st.session_state.graph_rag:
-        st.subheader("📊 System Status")
+        st.subheader("System Status")
         graph = st.session_state.graph_rag.knowledge_graph.graph
         st.metric("Graph Nodes", len(graph.nodes))
         st.metric("Graph Edges", len(graph.edges))
@@ -235,22 +235,22 @@ with col1:
                     )
                     st.session_state.current_pdf_path = tmp_path
                     st.session_state.time_records = st.session_state.graph_rag.time_records
-                    st.success("✅ PDF processed successfully!")
+                    st.success("PDF processed successfully!")
                     
                     # Show ingestion metrics
-                    st.markdown("### 📈 Ingestion Metrics")
+                    st.markdown("### Ingestion Metrics")
                     cols = st.columns(2)
                     cols[0].metric("FAISS Indexing Time", f"{st.session_state.time_records.get('FAISS Indexing', 0):.2f}s")
                     cols[1].metric("Graph Building Time", f"{st.session_state.time_records.get('Graph Building', 0):.2f}s")
                     
                 except Exception as e:
-                    st.error(f"❌ Error processing PDF: {str(e)}")
+                    st.error(f"Error processing PDF: {str(e)}")
                     st.session_state.graph_rag = None
 
     # Query Interface
     if st.session_state.graph_rag:
         st.markdown("---")
-        st.markdown("### 💬 Ask a Question")
+        st.markdown("### Ask a Question")
         
         # Example queries
         example_queries = [
@@ -267,9 +267,9 @@ with col1:
         else:
             query = st.text_input("Enter your question:", placeholder="e.g., What is climate change?")
         
-        if st.button("🔍 Search", type="primary", use_container_width=True):
+        if st.button("Search", type="primary", use_container_width=True):
             if query:
-                with st.spinner("🧠 Processing query..."):
+                with st.spinner("Processing query..."):
                     try:
                         results = st.session_state.graph_rag.run(query)
                         
@@ -282,7 +282,7 @@ with col1:
                         
                         # Display Results
                         st.markdown("---")
-                        st.markdown("### 📝 Answer")
+                        st.markdown("### Answer")
                         st.markdown(f"<div style='background-color: #f0f9ff; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #667eea;'>{results['answer']}</div>", unsafe_allow_html=True)
                         
                         # Pipeline Steps
@@ -298,48 +298,48 @@ with col1:
                         
                         # Retrieval Info
                         st.markdown("---")
-                        st.markdown("### 📊 Retrieval Details")
+                        st.markdown("### Retrieval Details")
                         detail_cols = st.columns(3)
                         detail_cols[0].markdown(f"<div class='metric-card'><b>Retrieved Chunks:</b> {results['retrieved_count']}</div>", unsafe_allow_html=True)
                         detail_cols[1].markdown(f"<div class='metric-card'><b>Reranked Chunks:</b> {results['reranked_count']}</div>", unsafe_allow_html=True)
                         detail_cols[2].markdown(f"<div class='metric-card'><b>Graph Nodes Visited:</b> {results['nodes_visited']}</div>", unsafe_allow_html=True)
                         
-                        with st.expander("🔍 View Rewritten Query"):
+                        with st.expander("View Rewritten Query"):
                             st.info(results['rewritten_query'])
                         
                         # Graph Visualization
                         if os.path.exists("graph_traversal.png"):
                             st.markdown("---")
-                            st.markdown("### 🗺️ Knowledge Graph Traversal")
+                            st.markdown("### Knowledge Graph Traversal")
                             st.image("graph_traversal.png", use_container_width=True)
                             st.caption("Visualization shows the traversal path through the knowledge graph (green = start, red = end)")
                         
                     except Exception as e:
-                        st.error(f"❌ Error processing query: {str(e)}")
+                        st.error(f"Error processing query: {str(e)}")
             else:
-                st.warning("⚠️ Please enter a question")
+                st.warning("Please enter a question")
     else:
-        st.info("👈 Please upload a PDF file to get started")
+        st.info("Please upload a PDF file from the sidebar to get started")
 
 with col2:
-    st.markdown("### 📚 Query History")
+    st.markdown("### Query History")
     
     if st.session_state.query_history:
         for i, item in enumerate(reversed(st.session_state.query_history[-5:])):  # Show last 5
-            with st.expander(f"🕐 {item['time']} - Query {len(st.session_state.query_history)-i}"):
+            with st.expander(f"{item['time']} - Query {len(st.session_state.query_history)-i}"):
                 st.markdown(f"**Q:** {item['query']}")
                 st.markdown(f"**A:** {item['results']['answer'][:200]}...")
     else:
         st.info("No queries yet. Start by asking a question!")
     
     st.markdown("---")
-    st.markdown("### ℹ️ About")
+    st.markdown("### About")
     st.markdown("""
     **GraphRAG** combines:
-    - 🔍 **Vector Search** (FAISS)
-    - 🕸️ **Knowledge Graphs** (NetworkX)
-    - 🎯 **Cross-Encoder Reranking**
-    - 🤖 **LLM Generation** (Groq)
+    - **Vector Search** (FAISS)
+    - **Knowledge Graphs** (NetworkX)
+    - **Cross-Encoder Reranking**
+    - **LLM Generation** (Groq)
     
     Built with Python, LangChain, and Streamlit.
     
@@ -348,4 +348,4 @@ with col2:
 
 # Footer
 st.markdown("---")
-st.markdown("<p style='text-align: center; color: #888;'>Made with ❤️ using Streamlit | Powered by Groq & FAISS</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #888;'>Built with Streamlit | Powered by Groq & FAISS</p>", unsafe_allow_html=True)
