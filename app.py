@@ -7,7 +7,13 @@ from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 import sys
-sys.path.append('src')
+
+# Add src directory to Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+src_path = os.path.join(current_dir, 'src')
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
 from util import (
     encode_pdf, build_knowledge_graph, rerank_documents,
     find_node_by_content, expand_context_via_graph, visualize_graph
