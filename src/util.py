@@ -87,7 +87,13 @@ class KnowledgeGraph:
       self.edges_threshold=0.5
     
     def _load_spacy_model(self):
-        return spacy.load("en_core_web_sm")
+        try:
+            return spacy.load("en_core_web_sm")
+        except OSError:
+            print("Downloading spaCy model 'en_core_web_sm'...")
+            import subprocess
+            subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"], check=True)
+            return spacy.load("en_core_web_sm")
     
     def build_graph(self,splits,llm,embedding_model):
         print("\nbuilding knowledge graphs")
