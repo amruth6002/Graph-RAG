@@ -2,6 +2,8 @@ import os
 import pickle
 import heapq
 import time
+import sys
+import subprocess
 import numpy as np
 import networkx as nx
 import matplotlib
@@ -91,9 +93,13 @@ class KnowledgeGraph:
             return spacy.load("en_core_web_sm")
         except OSError:
             print("Downloading spaCy model 'en_core_web_sm'...")
-            import subprocess
-            subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"], check=True)
-            return spacy.load("en_core_web_sm")
+            try:
+                subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"], check=True)
+                return spacy.load("en_core_web_sm")
+            except Exception as e:
+                print(f"Failed to download spaCy model: {e}")
+                print("Using blank spaCy model (NER features will be limited)")
+                return spacy.blank("en")
     
     def build_graph(self,splits,llm,embedding_model):
         print("\nbuilding knowledge graphs")
