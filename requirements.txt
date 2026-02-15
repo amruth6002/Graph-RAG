@@ -1,0 +1,17 @@
+streamlit
+langchain
+langchain-groq
+langchain-huggingface
+langchain-community
+langchain-experimental
+faiss-cpu
+sentence-transformers
+networkx
+scikit-learn
+spacy
+nltk
+matplotlib
+tqdm
+pydantic
+python-dotenv
+pypdf
