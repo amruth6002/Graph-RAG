@@ -13,7 +13,7 @@ os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 
 class GraphRAG:
 
-        def __init__(self,path , chunk_size=1000,chunk_overlap=200 , n_retrieved=10):
+        def __init__(self,path , chunk_size=1000,chunk_overlap=200 , n_retrieved=10, force_rebuild=False):
             print("INGESTION PHASE")
             
             self.llm = ChatGroq(
@@ -22,13 +22,15 @@ class GraphRAG:
             )
 
             start_time = time.time()
-            self.vector_store,self.splits,self.embedding_model = encode_pdf(path, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+            self.vector_store,self.splits,self.embedding_model = encode_pdf(
+                path, chunk_size=chunk_size, chunk_overlap=chunk_overlap, force_rebuild=force_rebuild
+            )
             self.time_records= {'FAISS Indexing': time.time() - start_time}
             print(f"FAISS time: {self.time_records['FAISS Indexing']:.2f} seconds")
             
             start_time = time.time()
             self.knowledge_graph=build_knowledge_graph(
-                self.splits,self.llm,self.embedding_model
+                self.splits,self.llm,self.embedding_model, force_rebuild=force_rebuild
             )
             self.time_records['graph building'] = time.time() - start_time
             print(f" Graph time: {self.time_records['graph building']:.2f}s")
@@ -153,17 +155,16 @@ def parse_args():
 
 def main(args):
 
-    if args.rebuild:
-        import shutil
-        if os.path.exists("indexes"):
-            shutil.rmtree("indexes")
-            print("cleared persisted indexes. Rebuilding")
+    force_rebuild = args.rebuild
+    if force_rebuild:
+        print("Force rebuild enabled. Will rebuild indexes from scratch.")
 
     simple_rag = GraphRAG(
         path=args.path,
         chunk_size=args.chunk_size,
         chunk_overlap=args.chunk_overlap,
-        n_retrieved=args.n_retrieved
+        n_retrieved=args.n_retrieved,
+        force_rebuild=force_rebuild
     )
 
     simple_rag.run(args.query)

@@ -75,7 +75,7 @@ if 'query_history' not in st.session_state:
     st.session_state.query_history = []
 
 class GraphRAG:
-    def __init__(self, path, chunk_size=1000, chunk_overlap=200, n_retrieved=10):
+    def __init__(self, path, chunk_size=1000, chunk_overlap=200, n_retrieved=10, force_rebuild=False):
         self.llm = ChatGroq(
             model="llama-3.3-70b-versatile",
             temperature=0,
@@ -84,13 +84,13 @@ class GraphRAG:
 
         start_time = time.time()
         self.vector_store, self.splits, self.embedding_model = encode_pdf(
-            path, chunk_size=chunk_size, chunk_overlap=chunk_overlap
+            path, chunk_size=chunk_size, chunk_overlap=chunk_overlap, force_rebuild=force_rebuild
         )
         self.time_records = {'FAISS Indexing': time.time() - start_time}
 
         start_time = time.time()
         self.knowledge_graph = build_knowledge_graph(
-            self.splits, self.llm, self.embedding_model
+            self.splits, self.llm, self.embedding_model, force_rebuild=force_rebuild
         )
         self.time_records['Graph Building'] = time.time() - start_time
 
@@ -225,13 +225,20 @@ with col1:
 
         # Check if we need to process a new PDF
         if st.session_state.current_pdf_path != tmp_path or st.session_state.graph_rag is None:
-            with st.spinner("🔄 Processing PDF... This may take a few minutes..."):
+            with st.spinner("Processing PDF... This may take a few minutes..."):
                 try:
+                    # Check if this is a different PDF
+                    force_rebuild = False
+                    if st.session_state.current_pdf_path and st.session_state.current_pdf_path != tmp_path:
+                        force_rebuild = True
+                        st.info("New PDF detected. Building fresh indexes...")
+                    
                     st.session_state.graph_rag = GraphRAG(
                         path=tmp_path,
                         chunk_size=chunk_size,
                         chunk_overlap=chunk_overlap,
-                        n_retrieved=n_retrieved
+                        n_retrieved=n_retrieved,
+                        force_rebuild=force_rebuild
                     )
                     st.session_state.current_pdf_path = tmp_path
                     st.session_state.time_records = st.session_state.graph_rag.time_records

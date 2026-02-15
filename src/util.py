@@ -40,12 +40,26 @@ def replace_t_with_space(list_of_documents):
     return list_of_documents
 
 
-def encode_pdf(path, chunk_size=1000, chunk_overlap=200,persist_dir="indexes/faiss"):
+def encode_pdf(path, chunk_size=1000, chunk_overlap=200, persist_dir="indexes/faiss", force_rebuild=False):
     
     embeddings=HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
-    if os.path.exists(persist_dir):
-        print("loading from database")
+    # Check if indexes exist and match the current PDF
+    pdf_metadata_path = os.path.join(persist_dir, "pdf_metadata.pkl")
+    indexes_valid = False
+    
+    if os.path.exists(persist_dir) and not force_rebuild:
+        if os.path.exists(pdf_metadata_path):
+            with open(pdf_metadata_path, "rb") as f:
+                metadata = pickle.load(f)
+            # Check if same PDF (by size and name)
+            current_size = os.path.getsize(path)
+            current_name = os.path.basename(path)
+            if metadata.get('size') == current_size and metadata.get('name') == current_name:
+                indexes_valid = True
+    
+    if indexes_valid:
+        print("Loading from cached indexes")
         vectorstore=FAISS.load_local(persist_dir,embeddings,allow_dangerous_deserialization=True)
         
         splits_path=os.path.join(persist_dir,"splits.pkl")
@@ -75,6 +89,15 @@ def encode_pdf(path, chunk_size=1000, chunk_overlap=200,persist_dir="indexes/fai
     vectorstore.save_local(persist_dir)
     with open(os.path.join(persist_dir,"splits.pkl"),"wb") as f:
         pickle.dump(cleaned_splits,f)
+    
+    # Save PDF metadata to validate cache on next load
+    metadata = {
+        'name': os.path.basename(path),
+        'size': os.path.getsize(path)
+    }
+    with open(os.path.join(persist_dir, "pdf_metadata.pkl"), "wb") as f:
+        pickle.dump(metadata, f)
+    
     print(f"FAISS index persisted")
 
     return vectorstore,cleaned_splits,embeddings
@@ -166,9 +189,9 @@ class KnowledgeGraph:
         return ' '.join([self.lemmatizer.lemmatize(w) for w in concept.lower().split()])
 
 
-def build_knowledge_graph(splits, llm, embedding_model, persist_path="indexes/knowledge_graph.pkl"):
+def build_knowledge_graph(splits, llm, embedding_model, persist_path="indexes/knowledge_graph.pkl", force_rebuild=False):
 
-    if os.path.exists(persist_path):
+    if os.path.exists(persist_path) and not force_rebuild:
         print(f"Loading persisted knowledge graph from {persist_path}")
         with open(persist_path, "rb") as f:
             kg = pickle.load(f)
