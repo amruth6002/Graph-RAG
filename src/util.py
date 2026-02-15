@@ -19,9 +19,7 @@ from nltk.stem import WordNetLemmatizer
 from tqdm import tqdm
 from sklearn.metrics.pairwise import cosine_similarity
 from langchain_core.prompts import PromptTemplate
-from spacy.cli import download
 from langchain_experimental.text_splitter import SemanticChunker
-from sentence_transformers import CrossEncoder
 from sentence_transformers import CrossEncoder
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
@@ -115,14 +113,8 @@ class KnowledgeGraph:
         try:
             return spacy.load("en_core_web_sm")
         except OSError:
-            print("Downloading spaCy model 'en_core_web_sm'...")
-            try:
-                subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"], check=True)
-                return spacy.load("en_core_web_sm")
-            except Exception as e:
-                print(f"Failed to download spaCy model: {e}")
-                print("Using blank spaCy model (NER features will be limited)")
-                return spacy.blank("en")
+            print("spaCy model not found. Using blank model (limited NER)...")
+            return spacy.blank("en")
     
     def build_graph(self,splits,llm,embedding_model):
         print("\nbuilding knowledge graphs")
